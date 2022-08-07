@@ -14,6 +14,7 @@ import torch.tensor as T
 import datasets
 from fastai.text.all import *
 from transformers import ElectraConfig, ElectraTokenizerFast, ElectraForMaskedLM, ElectraForPreTraining
+from transformers import ConvBertConfig, ConvBertTokenizerFast, ConvBertForMaskedLM, ConvBertForSequenceClassification
 from hugdatafast import *
 from _utils.utils import *
 from _utils.would_like_to_pr import *
@@ -99,16 +100,19 @@ elif c.model == "convbert":
     c.lr = [3e-4, 5e-4, 2e-4][i]
     c.bs = [128, 128, 256][i]
     c.steps = 10**6
-    c.max_length = [128, 512, 512][i]
+    
+    # The original ConvBERT samples with sequence length 512 10% of the time, but that remains unsupported for now
+    c.max_length = 128
     generator_size_divisor = [4, 4, 3][i]
-    disc_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-discriminator')
-    gen_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-generator')
-
-    # note that public electra-small model is actually small++ and don't scale down generator size 
+    disc_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}-discriminator')
+    
+    # YituTech did not open source their generator, so we're going to use the discriminator to create it instead
+    gen_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}-discriminator') # modify since the last layer of both has diff dim
+    
     gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
     gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor
     gen_config.intermediate_size = disc_config.intermediate_size//generator_size_divisor
-    hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator")
+    hf_tokenizer = ConvBertTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator")
 
 # logger
 if c.logger == 'neptune':
