@@ -25,6 +25,8 @@ from _utils.would_like_to_pr import *
 c = MyConfig({
     'device': 'cuda:0',
     
+    'model': 'electra', # choose between 'electra' and 'convbert'
+    
     'base_run_name': 'vanilla', # run_name = {base_run_name}_{seed}
     'seed': 11081, # 11081 36 1188 76 1 4 4649 7 # None/False to randomly choose seed from [0,999999]
 
@@ -35,7 +37,7 @@ c = MyConfig({
     'gen_smooth_label': False,
     'disc_smooth_label': False,
 
-    'size': 'small',
+    'size': 'small', # for ELECTRA, choose between 'small', 'base', and 'large'. For ConvBERT, choose between 'small', 'medium-small', and 'base'.
     'datas': ['openwebtext'],
     
     'logger': 'wandb',
@@ -72,21 +74,41 @@ c.run_name = f'{c.base_run_name}_{c.seed}'
 if c.gen_smooth_label is True: c.gen_smooth_label = 0.1
 if c.disc_smooth_label is True: c.disc_smooth_label = 0.1
 
-# Setting of different sizes
-i = ['small', 'base', 'large'].index(c.size)
-c.mask_prob = [0.15, 0.15, 0.25][i]
-c.lr = [5e-4, 2e-4, 2e-4][i]
-c.bs = [128, 256, 2048][i]
-c.steps = [10**6, 766*1000, 400*1000][i]
-c.max_length = [128, 512, 512][i]
-generator_size_divisor = [4, 3, 4][i]
-disc_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-discriminator')
-gen_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-generator')
-# note that public electra-small model is actually small++ and don't scale down generator size 
-gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
-gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor
-gen_config.intermediate_size = disc_config.intermediate_size//generator_size_divisor
-hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator")
+if c.model == "electra":
+    # Setting of different sizes
+    i = ['small', 'base', 'large'].index(c.size)
+    c.mask_prob = [0.15, 0.15, 0.25][i]
+    c.lr = [5e-4, 2e-4, 2e-4][i]
+    c.bs = [128, 256, 2048][i]
+    c.steps = [10**6, 766*1000, 400*1000][i]
+    c.max_length = [128, 512, 512][i]
+    generator_size_divisor = [4, 3, 4][i]
+    disc_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-discriminator')
+    gen_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-generator')
+
+    # note that public electra-small model is actually small++ and don't scale down generator size 
+    gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
+    gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor
+    gen_config.intermediate_size = disc_config.intermediate_size//generator_size_divisor
+    hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator")
+
+elif c.model == "convbert":
+    # Setting of different sizes
+    i = ['small', 'medium-small', 'base'].index(c.size)
+    c.mask_prob = 0.15
+    c.lr = [3e-4, 5e-4, 2e-4][i]
+    c.bs = [128, 128, 256][i]
+    c.steps = 10**6
+    c.max_length = [128, 512, 512][i]
+    generator_size_divisor = [4, 4, 3][i]
+    disc_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-discriminator')
+    gen_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-generator')
+
+    # note that public electra-small model is actually small++ and don't scale down generator size 
+    gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
+    gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor
+    gen_config.intermediate_size = disc_config.intermediate_size//generator_size_divisor
+    hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator")
 
 # logger
 if c.logger == 'neptune':
