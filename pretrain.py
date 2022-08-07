@@ -104,10 +104,10 @@ elif c.model == "convbert":
     # The original ConvBERT samples with sequence length 512 10% of the time, but that remains unsupported for now
     c.max_length = 128
     generator_size_divisor = [4, 4, 3][i]
-    disc_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}-discriminator')
+    disc_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}')
     
     # YituTech did not open source their generator, so we're going to use the discriminator to create it instead
-    gen_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}-discriminator') # modify since the last layer of both has diff dim
+    gen_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}') # modify since the last layer of both has diff dim
     
     gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
     gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor
