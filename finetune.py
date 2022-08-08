@@ -132,14 +132,6 @@ elif c.logger == 'wandb':
       wandb.log({}) # ensure sync of last step
       self.run.finish()
 
-# my model
-if c.my_model:
-  sys.path.insert(0, os.path.abspath(".."))
-  from modeling.model import ModelForDiscriminator
-  from hyperparameter import electra_hparam_from_hf
-  hparam = electra_hparam_from_hf(electra_config, hf_tokenizer)
-  hparam.update(hparam_update)
-
 # Path
 Path('./datasets').mkdir(exist_ok=True)
 Path('./checkpoints/glue').mkdir(exist_ok=True, parents=True)
@@ -337,9 +329,9 @@ def list_parameters(model, submod_name):
 
 def hf_electra_param_splitter(model, wsc_trick=False):
   base = 'discriminator.electra' if wsc_trick else 'base_model'
-  embed_name = 'embedding' if c.my_model else 'embeddings'
-  scaler_name = 'dimension_scaler' if c.my_model else 'embeddings_project'
-  layers_name = 'layers' if c.my_model else 'layer'
+  embed_name = 'embeddings'
+  scaler_name = 'embeddings_project'
+  layers_name = 'layer'
   output_name = 'classifier' if not wsc_trick else f'discriminator.discriminator_predictions'
   
   groups = [ list_parameters(model, f"{base}.{embed_name}") ]
@@ -348,8 +340,6 @@ def hf_electra_param_splitter(model, wsc_trick=False):
   groups.append( list_parameters(model, output_name) )
   if electra_config.hidden_size != electra_config.embedding_size:
     groups[0] += list_parameters(model, f"{base}.{scaler_name}")
-  if c.my_model and hparam['pre_norm']:
-    groups[-2] += list_parameters(model, f"{base}.encoder.norm")
 
   assert len(list(model.parameters())) == sum([ len(g) for g in groups])
   for i, (p1, p2) in enumerate(zip(model.parameters(), [ p for g in groups for p in g])):
@@ -383,7 +373,7 @@ def get_glue_learner(task, run_name=None, inference=False):
   if not c.pretrained_checkpoint:
     discriminator = ElectraForPreTraining.from_pretrained(f"google/electra-{c.size}-discriminator")
   else:
-    discriminator = ModelForDiscriminator(hparam) if c.my_model else ElectraForPreTraining(electra_config)
+    discriminator = ElectraForPreTraining(electra_config)
     load_part_model(c.pretrained_ckp_path, discriminator, 'discriminator')
 
   # Seeds & PyTorch benchmark
