@@ -1,3 +1,7 @@
+This is a fork of richardwang/electra-pytorch designed to also support ConvBERT. Still a work in progress for now.
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+
 Unofficial PyTorch implementation of 
 
 > [ELECTRA: Pre-training Text Encoders as Discriminators Rather Than Generators](https://arxiv.org/abs/2003.10555)
