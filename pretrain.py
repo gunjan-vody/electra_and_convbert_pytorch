@@ -123,7 +123,8 @@ elif c.logger == 'wandb':
   from fastai.callback.wandb import  WandbCallback
 
 # Path to data
-Path('./datasets', exist_ok=True)
+Path('./datasets').mkdir(exist_ok=True)
+# Path('./datasets', exist_ok=True)
 Path('./checkpoints/pretrain').mkdir(exist_ok=True, parents=True)
 edl_cache_dir = Path("./datasets/electra_dataloader")
 edl_cache_dir.mkdir(exist_ok=True)
