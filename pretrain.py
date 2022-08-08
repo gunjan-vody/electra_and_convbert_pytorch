@@ -14,7 +14,7 @@ import torch.tensor as T
 import datasets
 from fastai.text.all import *
 from transformers import ElectraConfig, ElectraTokenizerFast, ElectraForMaskedLM, ElectraForPreTraining
-from transformers import ConvBertConfig, ConvBertTokenizerFast, ConvBertForMaskedLM, ConvBertForSequenceClassification
+from transformers import ConvBertConfig, ConvBertTokenizerFast, ConvBertForMaskedLM, ConvBertForTokenClassification
 from hugdatafast import *
 from _utils.utils import *
 from _utils.would_like_to_pr import *
@@ -42,8 +42,7 @@ c = MyConfig({
     'datas': ['openwebtext'],
     
     'logger': 'wandb',
-    'num_workers': 3,
-    'my_model': False, # only for my personal research
+    'num_workers': 3
 })
 
 # only for my personal research
@@ -133,17 +132,6 @@ edl_cache_dir.mkdir(exist_ok=True)
 print(f"process id: {os.getpid()}")
 print(c)
 print(hparam_update)
-
-
-# %%
-if c.my_model: # only for use of my personal research 
-  sys.path.insert(0, os.path.abspath(".."))
-  from modeling.model import ModelForGenerator,ModelForDiscriminator
-  from hyperparameter import electra_hparam_from_hf
-  gen_hparam = electra_hparam_from_hf(gen_config, hf_tokenizer)
-  gen_hparam.update(hparam_update)
-  disc_hparam = electra_hparam_from_hf(disc_config, hf_tokenizer)
-  disc_hparam.update(hparam_update)
 
 # %% [markdown]
 # # 1. Load Data
@@ -288,7 +276,7 @@ class ELECTRAModel(nn.Module):
   
   def __init__(self, generator, discriminator, hf_tokenizer):
     super().__init__()
-    self.generator, self.discriminator = generator,discriminator
+    self.generator, self.discriminator = generator, discriminator
     self.gumbel_dist = torch.distributions.gumbel.Gumbel(0.,1.)
     self.hf_tokenizer = hf_tokenizer
 
@@ -308,14 +296,10 @@ class ELECTRAModel(nn.Module):
     labels (Tensor[int]): (B, L), -100 for positions where are not mlm applied
     """
     attention_mask, token_type_ids = self._get_pad_mask_and_token_type(masked_inputs, sentA_lenths)
-    if c.my_model:
-      gen_logits = self.generator(masked_inputs, attention_mask, token_type_ids, is_mlm_applied)[0]
-      # already reduced before the mlm output layer, save more space and speed
-      mlm_gen_logits = gen_logits # ( #mlm_positions, vocab_size)
-    else:
-      gen_logits = self.generator(masked_inputs, attention_mask, token_type_ids)[0] # (B, L, vocab size)
-      # reduce size to save space and speed
-      mlm_gen_logits = gen_logits[is_mlm_applied, :] # ( #mlm_positions, vocab_size)
+    gen_logits = self.generator(masked_inputs, attention_mask, token_type_ids)[0] # (B, L, vocab size)
+    
+    # reduce size to save space and speed
+    mlm_gen_logits = gen_logits[is_mlm_applied, :] # ( #mlm_positions, vocab_size)
     
     with torch.no_grad():
       # sampling
@@ -381,16 +365,16 @@ np.random.seed(c.seed)
 torch.manual_seed(c.seed)
 
 # Generator and Discriminator
-if c.my_model:
-  generator = ModelForGenerator(gen_hparam)
-  discriminator = ModelForDiscriminator(disc_hparam)
-  discriminator.electra.embedding = generator.electra.embedding
-  # implicitly tie in/out embeddings of generator
-else:
+if c.model == "electra":
   generator = ElectraForMaskedLM(gen_config)
   discriminator = ElectraForPreTraining(disc_config)
   discriminator.electra.embeddings = generator.electra.embeddings
   generator.generator_lm_head.weight = generator.electra.embeddings.word_embeddings.weight
+elif c.model == "convbert":
+  generator = ConvBertForMaskedLM(gen_config)
+  discriminator = ConvBertForTokenClassification(disc_config)
+  discriminator.convbert.embeddings = generator.convbert.embeddings
+  generator.generator_lm_head.weight = generator.convbert.embeddings.word_embeddings.weight
 
 # ELECTRA training loop
 electra_model = ELECTRAModel(generator, discriminator, hf_tokenizer)
