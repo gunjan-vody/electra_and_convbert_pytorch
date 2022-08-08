@@ -14,17 +14,19 @@ from torch import nn
 import datasets
 from fastai.text.all import *
 from transformers import ElectraModel, ElectraConfig, ElectraTokenizerFast, ElectraForPreTraining
+from transformers import ConvBertModel, ConvBertConfig, ConvBertTokenizerFast, ConvBertForTokenClassification
 from hugdatafast import *
 from _utils.utils import *
 from _utils.would_like_to_pr import *
 
 # %% [markdown]
-# # 1. Confiquration
+# # 1. Configuration
 
 # %%
 c = MyConfig({
 
   'device': 'cuda:0', #List[int]: use multi gpu (data parallel)
+  'model': 'electra', # choose between 'electra' and 'convbert'
   # run [start,end) runs, every run finetune every GLUE tasks once with different seeds.
   'start':0,
   'end': 10,
@@ -96,8 +98,12 @@ else: raise ValueError(f"Invalid size {c.size}")
 if c.pretrained_checkpoint is None: c.max_length = 512 # All public models is ++, which use max_length 512
 
 # huggingface/transformers
-hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-discriminator")
-electra_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-discriminator')
+if c.model == "electra":
+  hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-discriminator")
+  electra_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-discriminator')
+elif c.model == "convbert":
+  hf_tokenizer = ConvBertTokenizerFast.from_pretrained(f"google/electra-{c.size}-discriminator")
+  electra_config = ConvBertConfig.from_pretrained(f'google/electra-{c.size}-discriminator')
 
 # wsc
 if c.wsc_trick:
