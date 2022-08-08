@@ -107,7 +107,7 @@ elif c.model == "convbert":
     disc_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}')
     
     # YituTech did not open source their generator, so we're going to use the discriminator to create it instead
-    gen_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}') # modify since the last layer of both has diff dim
+    gen_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}')
     
     gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
     gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor
