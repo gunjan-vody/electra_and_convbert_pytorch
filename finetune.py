@@ -87,7 +87,6 @@ hparam_update = {
 # %%
 # Check
 if not c.do_finetune: assert c.th_run['mnli'] == c.th_run['ax']
-if c.pretrained_checkpoint is None: assert not c.my_model
 assert c.schedule in ['original_linear', 'separate_linear', 'one_cycle', 'adjusted_one_cycle']
 
 # Settings of different sizes
