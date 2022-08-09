@@ -415,7 +415,7 @@ elif c.logger == 'wandb':
   learn.add_cb(WandbCallback(log_preds=False, log_model=False))
 
 # Mixed precison and Gradient clip
-learn.to_native_fp16(init_scale=2.**11)
+learn.to_fp16(init_scale=2.**11) #used to be to_native_fp16
 learn.add_cb(GradientClipping(1.))
 
 # Print time and run name
