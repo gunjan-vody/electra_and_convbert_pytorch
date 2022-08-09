@@ -39,7 +39,7 @@ c = MyConfig({
     'disc_smooth_label': False,
 
     'size': 'small', # for ELECTRA, choose between 'small', 'base', and 'large'. For ConvBERT, choose between 'small', 'medium-small', and 'base'.
-    'datas': ['openwebtext'],
+    'datas': ['wikipedia'], #default is openwebtext, I'm switching temporarily to wikipedia to run tests
     
     'logger': 'wandb',
     'num_workers': 3
