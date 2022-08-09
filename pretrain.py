@@ -144,7 +144,7 @@ ELECTRAProcessor = partial(ELECTRADataProcessor, hf_tokenizer=hf_tokenizer, max_
 # Wikipedia
 if 'wikipedia' in c.datas:
   print('load/download wiki dataset')
-  wiki = datasets.load_dataset('wikipedia', '20220301.en', split='train[0:1000]', cache_dir='./datasets')['train']
+  wiki = datasets.load_dataset('wikipedia', '20220301.en', split='train[0:1000]', cache_dir='./datasets')#['train']
   print('load/create data from wiki dataset for ELECTRA')
   e_wiki = ELECTRAProcessor(wiki).map(cache_file_name=f"electra_wiki_{c.max_length}.arrow", num_proc=1)
   dsets.append(e_wiki)
