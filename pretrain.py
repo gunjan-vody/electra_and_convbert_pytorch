@@ -80,7 +80,7 @@ if c.model == "electra":
     c.mask_prob = [0.15, 0.15, 0.25][i]
     c.lr = [5e-4, 2e-4, 2e-4][i]
     c.bs = [128, 256, 2048][i]
-    c.steps = [10**6, 766*1000, 400*1000][i]
+    c.steps = [10**3, 766*1000, 400*1000][i] #10 ** 6 in reality for small, running a test
     c.max_length = [128, 512, 512][i]
     generator_size_divisor = [4, 3, 4][i]
     disc_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-discriminator')
