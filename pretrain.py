@@ -80,7 +80,7 @@ if c.model == "electra":
     c.mask_prob = [0.15, 0.15, 0.25][i]
     c.lr = [5e-4, 2e-4, 2e-4][i]
     c.bs = [128, 256, 2048][i]
-    c.steps = [10**3, 766*1000, 400*1000][i] #10 ** 6 in reality for small, running a test
+    c.steps = [10**6, 766*1000, 400*1000][i] #10 ** 6 in reality for small, running a test
     c.max_length = [128, 512, 512][i]
     generator_size_divisor = [4, 3, 4][i]
     disc_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-discriminator')
@@ -144,7 +144,7 @@ ELECTRAProcessor = partial(ELECTRADataProcessor, hf_tokenizer=hf_tokenizer, max_
 # Wikipedia
 if 'wikipedia' in c.datas:
   print('load/download wiki dataset')
-  wiki = datasets.load_dataset('wikipedia', '20220301.en', split='train[0:1000]', cache_dir='./datasets')#['train']
+  wiki = datasets.load_dataset('wikipedia', '20220301.en', cache_dir='./datasets')['train']
   print('load/create data from wiki dataset for ELECTRA')
   e_wiki = ELECTRAProcessor(wiki).map(cache_file_name=f"electra_wiki_{c.max_length}.arrow", num_proc=1)
   dsets.append(e_wiki)
