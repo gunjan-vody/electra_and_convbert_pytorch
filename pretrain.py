@@ -109,7 +109,7 @@ elif c.model == "convbert":
     gen_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}')
     
     gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
-    gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor
+    gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor * disc_config.head_ratio
     gen_config.intermediate_size = disc_config.intermediate_size//generator_size_divisor
     hf_tokenizer = ConvBertTokenizerFast.from_pretrained(f'YituTech/conv-bert-{c.size}')
 
@@ -373,7 +373,7 @@ if c.model == "electra":
   generator.generator_lm_head.weight = generator.electra.embeddings.word_embeddings.weight
 elif c.model == "convbert":
   generator = ConvBertForMaskedLM(gen_config)
-  discriminator = ConvBertForTokenClassification(disc_config)
+  discriminator = ConvBertForTokenClassification(disc_config, num_labels=1)
   discriminator.convbert.embeddings = generator.convbert.embeddings
   generator.generator_lm_head.weight = generator.convbert.embeddings.word_embeddings.weight
 
