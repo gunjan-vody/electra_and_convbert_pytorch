@@ -14,7 +14,7 @@ import torch.nn.functional as F
 import datasets
 from fastai.text.all import *
 from transformers import ElectraConfig, ElectraTokenizerFast, ElectraForMaskedLM, ElectraForPreTraining
-from transformers import ConvBertConfig, ConvBertTokenizerFast, ConvBertForMaskedLM, ConvBertForTokenClassification
+from transformers import ConvBertConfig, ConvBertForMaskedLM, ConvBertForTokenClassification
 from hugdatafast import *
 from _utils.utils import *
 from _utils.would_like_to_pr import *
@@ -111,7 +111,8 @@ elif c.model == "convbert":
     gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
     gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor * disc_config.head_ratio
     gen_config.intermediate_size = disc_config.intermediate_size//generator_size_divisor
-    hf_tokenizer = ConvBertTokenizerFast.from_pretrained(f'YituTech/conv-bert-{c.size}')
+
+hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator")
 
 # logger
 if c.logger == 'neptune':
