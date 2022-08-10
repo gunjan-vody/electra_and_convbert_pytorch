@@ -90,7 +90,6 @@ if c.model == "electra":
     gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
     gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor
     gen_config.intermediate_size = disc_config.intermediate_size//generator_size_divisor
-    hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator")
 
 elif c.model == "convbert":
     # Setting of different sizes
@@ -103,7 +102,7 @@ elif c.model == "convbert":
     # The original ConvBERT samples with sequence length 512 10% of the time, but that remains unsupported for now
     c.max_length = 128
     generator_size_divisor = [4, 4, 3][i]
-    disc_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}')
+    disc_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}', num_labels=1)
     
     # YituTech did not open source their generator, so we're going to use the discriminator to create it instead
     gen_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}')
@@ -314,6 +313,10 @@ class ELECTRAModel(nn.Module):
       is_replaced[is_mlm_applied] = (pred_toks != labels[is_mlm_applied]) # (B,L)
 
     disc_logits = self.discriminator(generated, attention_mask, token_type_ids)[0] # (B, L)
+    
+    # TokenClassification returns an extra dimension of 1 we need to remove
+    if c.model == "convbert":
+        disc_logits = disc_logits.squeeze(dim=2)
 
     return mlm_gen_logits, generated, disc_logits, is_replaced, attention_mask, is_mlm_applied
 
@@ -374,7 +377,7 @@ if c.model == "electra":
   generator.generator_lm_head.weight = generator.electra.embeddings.word_embeddings.weight
 elif c.model == "convbert":
   generator = ConvBertForMaskedLM(gen_config)
-  discriminator = ConvBertForTokenClassification(disc_config, num_labels=1)
+  discriminator = ConvBertForTokenClassification(disc_config)
   discriminator.convbert.embeddings = generator.convbert.embeddings
   generator.generator_lm_head.weight = generator.convbert.embeddings.word_embeddings.weight
 
