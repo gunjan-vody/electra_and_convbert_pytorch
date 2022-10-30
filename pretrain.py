@@ -15,6 +15,7 @@ import datasets
 from fastai.text.all import *
 from transformers import ElectraConfig, ElectraTokenizerFast, ElectraForMaskedLM, ElectraForPreTraining
 from transformers import ConvBertConfig, ConvBertForMaskedLM, ConvBertForTokenClassification
+from transformers import AutoConfig, AutoTokenizer, AutoModelForMaskedLM, AutoModelForTokenClassification
 from hugdatafast import *
 from _utils.utils import *
 from _utils.would_like_to_pr import *
@@ -26,8 +27,10 @@ from _utils.would_like_to_pr import *
 c = MyConfig({
     'device': 'cuda:0',
     
-    'model': 'electra', # choose between 'electra' and 'convbert'
-    
+    'model': 'electra', # choose between 'electra', 'convbert', and basically any other string
+    'generator_path': '', # path to generator model if you have a pre-initialized or specific hf checkpoint
+    'discriminator_path': '', #path to discriminator model if you have a pre-initialized or specific hf checkpoint
+    'generator_plus': 'false', # if true, gen size = disc size. False is only applicable to ELECTRA and ConvBERT
     'base_run_name': 'vanilla', # run_name = {base_run_name}_{seed}
     'seed': 11081, # 11081 36 1188 76 1 4 4649 7 # None/False to randomly choose seed from [0,999999]
 
@@ -83,13 +86,20 @@ if c.model == "electra":
     c.steps = [10**6, 766*1000, 400*1000][i] #10 ** 6 in reality for small, running a test
     c.max_length = [128, 512, 512][i]
     generator_size_divisor = [4, 3, 4][i]
-    disc_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-discriminator')
-    gen_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-generator')
+    if c.discriminator_path:
+        disc_config = ElectraConfig.from_pretrained(c.discriminator_path)
+    else:
+        disc_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-discriminator')
+    if c.generator_path:
+        gen_config = ElectraConfig.from_pretrained(c.generator_path)
+    else:
+        gen_config = ElectraConfig.from_pretrained(f'google/electra-{c.size}-generator')
 
-    # note that public electra-small model is actually small++ and don't scale down generator size 
-    gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
-    gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor
-    gen_config.intermediate_size = disc_config.intermediate_size//generator_size_divisor
+    # note that public electra-small model is actually small++ and don't scale down generator size
+    if not c.generator_plus: 
+        gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
+        gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor
+        gen_config.intermediate_size = disc_config.intermediate_size//generator_size_divisor
 
 elif c.model == "convbert":
     # Setting of different sizes
@@ -102,16 +112,39 @@ elif c.model == "convbert":
     # The original ConvBERT samples with sequence length 512 10% of the time, but that remains unsupported for now
     c.max_length = 128
     generator_size_divisor = [4, 4, 3][i]
-    disc_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}', num_labels=1)
+    if c.discriminator_path:
+        disc_config = ConvBertConfig.from_pretrained(c.discriminator_path)
+    else:
+        disc_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}', num_labels=1)
     
     # YituTech did not open source their generator, so we're going to use the discriminator to create it instead
-    gen_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}')
+    if c.generator_path:
+        gen_config = ConvBertConfig.from_pretrained(c.generator_path)
+    else:
+        gen_config = ConvBertConfig.from_pretrained(f'YituTech/conv-bert-{c.size}')
     
-    gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
-    gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor * disc_config.head_ratio
-    gen_config.intermediate_size = disc_config.intermediate_size//generator_size_divisor
+    if not c.generator_plus:
+        gen_config.hidden_size = int(disc_config.hidden_size/generator_size_divisor)
+        gen_config.num_attention_heads = disc_config.num_attention_heads//generator_size_divisor * disc_config.head_ratio
+        gen_config.intermediate_size = disc_config.intermediate_size//generator_size_divisor
 
-hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator")
+else:
+    # Change these params as needed
+    c.mask_prob = 0.15
+    c.lr = 3e-4
+    c.bs = 128
+    c.steps = 10**6
+    
+    c.max_length = 128
+
+    # a generator and discriminator path is necessary for Auto classes. Either an hf or a pretrained path is fine
+    disc_config = AutoConfig.from_pretrained(discriminator_path, num_labels=1)
+    gen_config = AutoConfig.from_pretrained(generator_path)
+
+if c.model == "electra" or c.model == "convbert":
+    hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator")
+else:
+    hf_tokenizer = AutoTokenizer.from_pretrained(c.discriminator_path)
 
 # logger
 if c.logger == 'neptune':
@@ -315,7 +348,7 @@ class ELECTRAModel(nn.Module):
     disc_logits = self.discriminator(generated, attention_mask, token_type_ids)[0] # (B, L)
     
     # TokenClassification returns an extra dimension of 1 we need to remove
-    if c.model == "convbert":
+    if c.model is not "electra":
         disc_logits = disc_logits.squeeze(dim=2)
 
     return mlm_gen_logits, generated, disc_logits, is_replaced, attention_mask, is_mlm_applied
@@ -380,6 +413,9 @@ elif c.model == "convbert":
   discriminator = ConvBertForTokenClassification(disc_config)
   discriminator.convbert.embeddings = generator.convbert.embeddings
   generator.generator_lm_head.weight = generator.convbert.embeddings.word_embeddings.weight
+else:
+  generator = AutoModelForMaskedLM(gen_config)
+  discriminator = AutoModelForTokenclassification(disc_config)
 
 # ELECTRA training loop
 electra_model = ELECTRAModel(generator, discriminator, hf_tokenizer)
