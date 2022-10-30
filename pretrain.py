@@ -138,8 +138,8 @@ else:
     c.max_length = 128
 
     # a generator and discriminator path is necessary for Auto classes. Either an hf or a pretrained path is fine
-    disc_config = AutoConfig.from_pretrained(discriminator_path, num_labels=1)
-    gen_config = AutoConfig.from_pretrained(generator_path)
+    disc_config = AutoConfig.from_pretrained(c.discriminator_path, num_labels=1)
+    gen_config = AutoConfig.from_pretrained(c.generator_path)
 
 if c.model == "electra" or c.model == "convbert":
     hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator")
