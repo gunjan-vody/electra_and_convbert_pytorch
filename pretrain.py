@@ -436,7 +436,7 @@ elif c.model == "deberta-v2":
         discriminator.deberta.encoder.layer[i] = generator.deberta.encoder.layer[i]
 else:
   generator = AutoModelForMaskedLM(gen_config)
-  discriminator = AutoModelForTokenclassification(disc_config)
+  discriminator = AutoModelForTokenClassification(disc_config)
 
 # ELECTRA training loop
 electra_model = ELECTRAModel(generator, discriminator, hf_tokenizer)
