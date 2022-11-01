@@ -15,6 +15,7 @@ import datasets
 from fastai.text.all import *
 from transformers import ElectraConfig, ElectraTokenizerFast, ElectraForMaskedLM, ElectraForPreTraining
 from transformers import ConvBertConfig, ConvBertForMaskedLM, ConvBertForTokenClassification
+from transformers import BertConfig, BertForMaskedLM, BertForTokenClassification
 from transformers import AutoConfig, AutoTokenizer, AutoModelForMaskedLM, AutoModelForTokenClassification
 from hugdatafast import *
 from _utils.utils import *
@@ -31,6 +32,7 @@ c = MyConfig({
     'generator_path': '', # path to generator model if you have a pre-initialized or specific hf checkpoint
     'discriminator_path': '', #path to discriminator model if you have a pre-initialized or specific hf checkpoint
     'generator_plus': 'false', # if true, gen size = disc size. False is only applicable to ELECTRA and ConvBERT
+    'layers_to_tie': [], # list of layers to tie, e.g. [0, 1, 2]
     'base_run_name': 'vanilla', # run_name = {base_run_name}_{seed}
     'seed': 11081, # 11081 36 1188 76 1 4 4649 7 # None/False to randomly choose seed from [0,999999]
 
@@ -408,11 +410,22 @@ if c.model == "electra":
   discriminator = ElectraForPreTraining(disc_config)
   discriminator.electra.embeddings = generator.electra.embeddings
   generator.generator_lm_head.weight = generator.electra.embeddings.word_embeddings.weight
+  for i in c.layers_to_tie:
+    discriminator.electra.encoder.layer[i] = generator.electra.encoder.layer[i] 
 elif c.model == "convbert":
   generator = ConvBertForMaskedLM(gen_config)
   discriminator = ConvBertForTokenClassification(disc_config)
   discriminator.convbert.embeddings = generator.convbert.embeddings
   generator.generator_lm_head.weight = generator.convbert.embeddings.word_embeddings.weight
+  for i in c.layers_to_tie:
+    discriminator.convbert.encoder.layer[i] = generator.convbert.encoder.layer[i]
+elif c.model == "minilm":
+    generator = BertForMaskedLM(gen_config)
+    discriminator = BertForTokenClassification(disc_config)
+    discriminator.bert.embeddings = generator.bert.embeddings
+    generator.cls_predictions.decoder.weight = generator.bert.embeddings.word_embeddings.weight
+    for i in c.layers_to_tie:
+        discriminator.bert.encoder.layer[i] = generator.bert.encoder.layer[i]
 else:
   generator = AutoModelForMaskedLM(gen_config)
   discriminator = AutoModelForTokenclassification(disc_config)
