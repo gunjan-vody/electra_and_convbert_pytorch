@@ -144,9 +144,9 @@ else:
     gen_config = AutoConfig.from_pretrained(c.generator_path)
 
 if c.model == "electra" or c.model == "convbert":
-    hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator")
+    hf_tokenizer = ElectraTokenizerFast.from_pretrained(f"google/electra-{c.size}-generator", use_fast=True)
 else:
-    hf_tokenizer = AutoTokenizer.from_pretrained(c.discriminator_path)
+    hf_tokenizer = AutoTokenizer.from_pretrained(c.discriminator_path, use_fast=True)
 
 # logger
 if c.logger == 'neptune':
