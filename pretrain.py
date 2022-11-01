@@ -16,7 +16,7 @@ from fastai.text.all import *
 from transformers import ElectraConfig, ElectraTokenizerFast, ElectraForMaskedLM, ElectraForPreTraining
 from transformers import ConvBertConfig, ConvBertForMaskedLM, ConvBertForTokenClassification
 from transformers import BertConfig, BertForMaskedLM, BertForTokenClassification
-from transformers import DebertaConfig, DebertaForMaskedLM, DebertaForTokenClassification
+from transformers import DebertaV2Config, DebertaV2ForMaskedLM, DebertaV2ForTokenClassification
 from transformers import AutoConfig, AutoTokenizer, AutoModelForMaskedLM, AutoModelForTokenClassification
 from hugdatafast import *
 from _utils.utils import *
