@@ -16,6 +16,7 @@ from fastai.text.all import *
 from transformers import ElectraConfig, ElectraTokenizerFast, ElectraForMaskedLM, ElectraForPreTraining
 from transformers import ConvBertConfig, ConvBertForMaskedLM, ConvBertForTokenClassification
 from transformers import BertConfig, BertForMaskedLM, BertForTokenClassification
+from transformers import DebertaConfig, DebertaForMaskedLM, DebertaForTokenClassification
 from transformers import AutoConfig, AutoTokenizer, AutoModelForMaskedLM, AutoModelForTokenClassification
 from hugdatafast import *
 from _utils.utils import *
@@ -28,7 +29,7 @@ from _utils.would_like_to_pr import *
 c = MyConfig({
     'device': 'cuda:0',
     
-    'model': 'electra', # choose between 'electra', 'convbert', and basically any other string
+    'model': 'electra', # choose between 'electra', 'convbert', 'minilm', 'deberta-v2', or pretty much any other model class
     'generator_path': '', # path to generator model if you have a pre-initialized or specific hf checkpoint
     'discriminator_path': '', #path to discriminator model if you have a pre-initialized or specific hf checkpoint
     'generator_plus': 'false', # if true, gen size = disc size. False is only applicable to ELECTRA and ConvBERT
@@ -425,7 +426,14 @@ elif c.model == "minilm":
     discriminator.bert.embeddings = generator.bert.embeddings
     generator.cls_predictions.decoder.weight = generator.bert.embeddings.word_embeddings.weight
     for i in c.layers_to_tie:
-        discriminator.bert.encoder.layer[i] = generator.bert.encoder.layer[i]
+        discriminator.bert.encoder.layer[i] = generator.bert.encoder.layer[i]'
+elif c.model == "deberta-v2":
+    generator = DebertaV2ForMaskedLM(gen_config)
+    discriminator = DebertaV2ForTokenClassification(disc_config)
+    discriminator.deberta.embeddings = generator.deberta.embeddings
+    generator.cls_predictions.decoder.weight = generator.deberta.embeddings.word_embeddings.weight
+    for i in c.layers_to_tie:
+        discriminator.deberta.encoder.layer[i] = generator.deberta.encoder.layer[i]
 else:
   generator = AutoModelForMaskedLM(gen_config)
   discriminator = AutoModelForTokenclassification(disc_config)
@@ -467,7 +475,7 @@ elif c.logger == 'wandb':
   wandb.init(name=c.run_name, project='electra_pretrain', config={**c, **hparam_update})
   learn.add_cb(WandbCallback(log_preds=False, log_model=False))
 
-# Mixed precison and Gradient clip
+# Mixed precision and Gradient clip
 learn.to_fp16(init_scale=2.**11) #used to be to_native_fp16
 learn.add_cb(GradientClipping(1.))
 
