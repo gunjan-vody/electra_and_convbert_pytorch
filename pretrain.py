@@ -427,7 +427,7 @@ elif c.model == "minilm":
     generator.cls_predictions.decoder.weight = generator.bert.embeddings.word_embeddings.weight
     for i in c.layers_to_tie:
         discriminator.bert.encoder.layer[i] = generator.bert.encoder.layer[i]
-elif c.model == "deberta-v2":
+elif c.model == "deberta-v2" or c.model == "deberta-v3":
     generator = DebertaV2ForMaskedLM(gen_config)
     discriminator = DebertaV2ForTokenClassification(disc_config)
     discriminator.deberta.embeddings = generator.deberta.embeddings
