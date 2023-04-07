@@ -193,6 +193,14 @@ if 'openwebtext' in c.datas:
   e_owt = ELECTRAProcessor(owt, apply_cleaning=False).map(cache_file_name=f"electra_owt_{c.max_length}.arrow", num_proc=1)
   dsets.append(e_owt)
 
+# CC-100
+if 'cc100' in c.datas:
+  print('load/download OpenWebText Corpus')
+  cc100 = datasets.load_dataset('cc100', cache_dir='./datasets')['train']
+  print('load/create data from CC100 Corpus for ELECTRA')
+  e_cc100 = ELECTRAProcessor(cc100, apply_cleaning=False).map(cache_file_name=f"electra_cc100_{c.max_length}.arrow", num_proc=1)
+  dsets.append(e_cc100)
+
 assert len(dsets) == len(c.datas)
 
 merged_dsets = {'train': datasets.concatenate_datasets(dsets)}
